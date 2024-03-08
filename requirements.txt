@@ -109,7 +109,6 @@ python-dateutil
 python-docx
 python-multipart
 pytz
-pywin32
 PyYAML
 pyzmq
 referencing
