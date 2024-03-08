@@ -1,116 +1,107 @@
 import pandas as pd
 import streamlit as st
 import numpy as np
-from app import *
+# from app import *
 import os
-# st.write("Here's our first attempt at using data to create a table:")
-# st.write(pd.DataFrame({
-#     'first column': [1, 2, 3, 4],
-#     'second column': [10, 20, 30, 40]
-# }))
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+import re
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english'))
+# from constant import model
+from llama_index.core import SimpleDirectoryReader
+import os
+from scipy.spatial.distance import cosine
+import fitz
+from docx import Document
+import glob
+
+from sentence_transformers import SentenceTransformer
+# model = SentenceTransformer('flax-sentence-embeddings/all_datasets_v4_MiniLM-L6')
+# model = SentenceTransformer("avsolatorio/GIST-Embedding-v0")
+model=SentenceTransformer("NeuML/pubmedbert-base-embeddings")
+
+def get_file_path_by_name(file_name):
+    file_path = None
+    for path in glob.glob(f'**/{file_name}', recursive=True):
+        if file_name in path:
+            file_path = path
+            break
+        file_path = os.path.abspath(file_path)
+    return file_path
 
 
-# dataframe = pd.DataFrame(
-#     np.random.randn(10, 20),
-#     columns=('col %d' % i for i in range(20)))
+def preprocessing(document):
+    """Preprocesses text data.
 
-# st.dataframe(dataframe.style.highlight_max(axis=1))
+    Args:
+        document: A list containing the text data.
 
-# dataframe = pd.DataFrame(
-#     np.random.randn(10, 20),
-#     columns=('col %d' % i for i in range(20)))
-# st.table(dataframe)
+    Returns:
+        The preprocessed text as a string.
+    """
 
-# st.text_input("Your name", key="name")
-# x = st.slider('x')  # 👈 this is a widget
-# st.write(x, 'squared is', x * x)
+    text1 = document[0].text.replace('\n', '').lower()
+    text = re.sub(r'[^\x00-\x7F]+', '', text1)  # Remove non-ASCII characters
+    tokens = word_tokenize(text)
+    tokens = [re.sub(r'[^a-zA-Z\s]', '', token) for token in tokens]  # Remove punctuation
+    tokens = [token for token in tokens if token]  # Remove empty tokens
+    filtered_tokens = [token for token in tokens if token not in stop_words]  # Remove stopwords
+    preprocessed_text = ' '.join(filtered_tokens)
+    return preprocessed_text
 
-# if st.checkbox('Show dataframe'):
-#     chart_data = pd.DataFrame(
-#        np.random.randn(20, 3),
-#        columns=['a', 'b', 'c'])
+def embedding_model(data):
+    """Encodes data using the provided model.
 
-#     chart_data
+    Args:
+        data: The text data to encode.
 
-# df = pd.DataFrame({
-#     'first column': [1, 2, 3, 4],
-#     'second column': [10, 20, 30, 40]
-#     })
+    Returns:
+        The encoded representation of the data.
+    """
 
-# option = st.selectbox(
-#     'Which number do you like best?',
-#      df['second column'])
+    text_embedding = model.encode(data)
+    return text_embedding
 
-# 'You selected: ', option
+def jd_embedding(uploaded_jd_file):
+    """Computes the embedding for a job description (JD) file.
 
-# add_selectbox = st.sidebar.selectbox(
-#     'How would you like to be contacted?',
-#     ('Email', 'Home phone', 'Mobile phone')
-# )
+    Args:
+        file: The path to the JD file.
 
-# # Add a slider to the sidebar:
-# add_slider = st.sidebar.slider(
-#     'Select a range of values',
-#     0.0, 100.0, (25.0, 75.0)
-# )
+    Returns:
+        The embedding of the JD.
+    """
 
-# left_column,center_column, right_column  = st.columns(3)
-# # You can use a column just like st.sidebar:
-# left_column.button('Press me!')
+    document = SimpleDirectoryReader(input_files=[uploaded_jd_file]).load_data()
+    print('yes its started')
+    # document = file_reader(uploaded_jd_file)
+    print('yes')
+    data1 = preprocessing(document)
+    print('yes')
+    JD_embedding = embedding_model(data1)
+    return JD_embedding
 
-# # Or even better, call Streamlit functions inside a "with" block:
-# with right_column:
-#     chosen = st.radio(
-#         'Sorting hat',
-#         ("Gryffindor", "Ravenclaw", "Hufflepuff", "Slytherin"))
-#     st.write(f"You are in {chosen} house!")
+# def RESUME_embedding(folder):
+#     """Computes the embedding for each resume in a folder.
 
-# import time
+#     Args:
+#         folder: The path to the folder containing resumes.
 
-# 'Starting a long computation...'
+#     Returns:
+#         A dictionary mapping filenames to their corresponding embeddings.
+#     """
 
-# # Add a placeholder
-# latest_iteration = st.empty()
-# bar = st.progress(0)
-
-# for i in range(100):
-#   # Update the progress bar with each iteration.
-#   latest_iteration.text(f'Iteration {i+1}')
-#   bar.progress(i + 1)
-#   time.sleep(0.1)
-
-# '...and now we\'re done!'
-
-# st.markdown("# JD - CV scorer 🎈")
-# left_column,center_column, right_column  = st.columns(3)
-
-# with left_column:
-#     uploaded_file = st. file_uploader('upload you JD here')
-#     folder=r'D:/jdcv_score_app/jdcv_score_app/JD/'
-#     if uploaded_file is not None:
-#         st.write("filename:", uploaded_file)
-#         print('bbbbbbbbbbbb',uploaded_file)
-#         JD_embedding = jd_embedding(folder+uploaded_file.name)
-#         st.write(JD_embedding)
-
-# with right_column:
-#     folder_resume=r'D:/jdcv_score_app/jdcv_score_app/resume/'
-#     uploaded_files = st.file_uploader("Choose the folder of the resume", accept_multiple_files=True)
-#     for i in uploaded_files:
-#         if i is not None:
-#             st.write("filename:", i)
-#             print('bbbbbbbbbbbb',i)
-#             RESUME_embedding = RESUME_embedding(folder_resume)
-#             st.write(RESUME_embedding)
-
-# with center_column:
-#     score_dict = {}
-#     for filename, resume_embedding in RESUME_embedding.items():
-#         score = 1 - cosine(JD_embedding, resume_embedding)
-#         score_dict[filename] = score * 100
-
-#     sorted_dict_desc = dict(sorted(score_dict.items(), key=lambda item: item[1], reverse=True))
-#     st.write(sorted_dict_desc)
+#     resume_embeddings = {}
+#     for filename in os.listdir(folder):
+#         if os.path.isfile(os.path.join(folder, filename)):
+#             print(filename)
+#             # document = SimpleDirectoryReader(input_files=[folder + filename]).load_data()
+#             document = file_reader(filename)
+#             REsume_embedding = embedding_model(preprocessing(document))
+#             resume_embeddings[filename] = REsume_embedding
+#     return resume_embeddings
 
 
 
@@ -156,29 +147,6 @@ def debug_app():
                         st.error(f"Error processing resume {uploaded_resume_file.name}: {e}")
             st.write("Resume uploaded")
 
-    # with right_column:
-    #     folder_resume = r'D:/jdcv_score_app/jdcv_score_app/resume/'
-    #     uploaded_resume_files = st.file_uploader(
-    #         "Choose the all of the resumes", accept_multiple_files=True
-    #     )
-    #     resume_embeddings = {}  # Dictionary to store resume embeddings
-
-    #     if uploaded_resume_files:
-    #         for uploaded_resume_file in uploaded_resume_files:
-    #             if uploaded_resume_file is not None:
-    #                 st.write("Resume filename:", uploaded_resume_file.name)
-    #                 print('Uploaded resume:', uploaded_resume_file.name)  # Optional output
-
-    #                 try:
-    #                     # Assuming you have logic to calculate resume embedding
-    #                     # based on the uploaded file, update the following line:
-    #                     document = SimpleDirectoryReader(input_files=[folder_resume + uploaded_resume_file.name]).load_data()
-    #                     REsume_embedding = embedding_model(preprocessing(document))
-    #                     resume_embeddings[uploaded_resume_file.name] = REsume_embedding # Calculate resume embedding using your function
-    #                     # resume_embeddings[uploaded_resume_file.name] = resume_embedding  # Store with filename
-    #                     st.write("Resume uploaded")
-    #                 except Exception as e:
-    #                     st.error(f"Error processing resume {uploaded_resume_file.name}: {e}")
 
     with right_column:
         score_dict = {}
