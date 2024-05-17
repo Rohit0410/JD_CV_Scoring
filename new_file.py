@@ -99,7 +99,7 @@ def debug_app():
             
         sorted_dict_desc = dict(sorted(score_dict.items(), key=lambda item: item[1], reverse=True))
         df = pd.DataFrame(list(sorted_dict_desc.items()), columns=['Resume', 'Score'])
-        st.dataframe(df, use_container_width=True, width=1200, hide_index=True)
+        st.dataframe(df, width=1200, hide_index=True)
 
 if __name__ == "__main__":
     debug_app()
