@@ -18,7 +18,8 @@ import glob
 nltk.download('stopwords')
 
 # Load the SentenceTransformer model
-model = SentenceTransformer("aspire/acge_text_embedding")
+# model = SentenceTransformer("aspire/acge_text_embedding")
+model = SentenceTransformer("NeuML/pubmedbert-base-embeddings")
 
 # Initialize NLTK stopwords
 stop_words = set(stopwords.words('english'))
